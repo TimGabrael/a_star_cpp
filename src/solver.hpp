@@ -3,6 +3,7 @@
 #include <concepts>
 #include <queue>
 #include <unordered_map>
+#include <array>
 
 enum class AStarType {
     // the element doesn't exist, will be treated the same as filled
@@ -162,46 +163,32 @@ private:
             successor->f_value = successor_f_val;
             successor->g_value = tentative_g;
             successor->predecessor = {prev_x, prev_y};
+            // the f_value changed so the open_list needs to be resorted
+            std::sort(open_list_container.begin(), open_list_container.end(), [](auto const& f, auto const& s){
+                    return f.f_value < s.f_value;
+            });
         }
         else {
             open_list.emplace(x, y, prev_x, prev_y, successor_f_val, tentative_g);
         }
     }
     void expand_node(AStarNode const& node) noexcept {
-        {
-            auto left = this->get_at(node.position.first - 1, node.position.second);
-            if(left == AStarType::EMPTY) {
-                this->add_node(node.position.first - 1, node.position.second, node.position.first, node.position.second, node.g_value);
-            }
-            auto right = this->get_at(node.position.first + 1, node.position.second);
-            if(right == AStarType::EMPTY) {
-                this->add_node(node.position.first + 1, node.position.second, node.position.first, node.position.second, node.g_value);
-            }
-            auto top = this->get_at(node.position.first, node.position.second - 1);
-            if(top == AStarType::EMPTY) {
-                this->add_node(node.position.first, node.position.second - 1, node.position.first, node.position.second, node.g_value);
-            }
-            auto bottom = this->get_at(node.position.first, node.position.second + 1);
-            if(bottom == AStarType::EMPTY) {
-                this->add_node(node.position.first, node.position.second + 1, node.position.first, node.position.second, node.g_value);
-            }
-        }
-        if constexpr (allow_diagonal_movement) {
-            auto lt = this->get_at(node.position.first - 1, node.position.second - 1);
-            if(lt == AStarType::EMPTY) {
-                this->add_node(node.position.first - 1, node.position.second - 1, node.position.first, node.position.second, node.g_value);
-            }
-            auto rt = this->get_at(node.position.first + 1, node.position.second - 1);
-            if(rt == AStarType::EMPTY) {
-                this->add_node(node.position.first + 1, node.position.second - 1, node.position.first, node.position.second, node.g_value);
-            }
-            auto lb = this->get_at(node.position.first - 1, node.position.second + 1);
-            if(lb == AStarType::EMPTY) {
-                this->add_node(node.position.first - 1, node.position.second + 1, node.position.first, node.position.second, node.g_value);
-            }
-            auto rb = this->get_at(node.position.first + 1, node.position.second + 1);
-            if(rb == AStarType::EMPTY) {
-                this->add_node(node.position.first + 1, node.position.second + 1, node.position.first, node.position.second, node.g_value);
+        std::array<Position, 8> positions = {
+            Position{-1ll, 0ll},
+            Position{ 1ll, 0ll},
+            Position{ 0ll,-1ll},
+            Position{ 0ll, 1ll},
+
+            Position{-1ll,-1ll},
+            Position{ 1ll,-1ll},
+            Position{-1ll, 1ll},
+            Position{ 1ll, 1ll}
+        };
+        static constexpr auto iter_len = allow_diagonal_movement ? 8uLL : 4uLL;
+        for(auto i = 0uLL; i < iter_len; ++i) {
+            auto tile_type = this->get_at(node.position.first + positions[i].first, node.position.second + positions[i].second);
+            if(tile_type == AStarType::EMPTY) {
+                this->add_node(node.position.first + positions[i].first, node.position.second + positions[i].second, node.position.first, node.position.second, node.g_value);
             }
         }
 
